@@ -4,7 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 const dist = path.resolve('dist');
 const manifest = JSON.parse(await readFile(path.join(dist, 'manifest.json'), 'utf8'));
 if (manifest.manifest_version !== 3) throw new Error('Manifest V3 requerido.');
-const paths = [manifest.background.service_worker, manifest.action.default_popup, ...manifest.content_scripts.flatMap((entry: { js: string[] }) => entry.js), ...manifest.declarative_net_request.rule_resources.map((entry: { path: string }) => entry.path)];
+const paths = [manifest.background.service_worker, manifest.action.default_popup, manifest.options_page, ...Object.values(manifest.icons) as string[], ...manifest.content_scripts.flatMap((entry: { js: string[] }) => entry.js), ...manifest.declarative_net_request.rule_resources.map((entry: { path: string }) => entry.path)];
 for (const relative of paths) {
   const file = path.resolve(dist, relative);
   if (!file.startsWith(dist + path.sep)) throw new Error(`Ruta fuera de dist: ${relative}`);

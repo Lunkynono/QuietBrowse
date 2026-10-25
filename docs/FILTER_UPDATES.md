@@ -1,6 +1,6 @@
 # Filter updates
 
-The v0.1 build uses the pinned `@adguard/dnr-rulesets` package. Rule sets are copied into `dist/` during `npm run build`; the extension never fetches live filter lists. `dist/filters/filters-manifest.json` records the package version, build time, rule counts and SHA-256 checksums.
+The v0.2 build uses the pinned `@adguard/dnr-rulesets` package. Rule sets are copied into `dist/` during `npm run build`; the extension never fetches live filter lists. `dist/filters/filters-manifest.json` records the package version, build time, rule counts and SHA-256 checksums. IDs 2, 3, 9, 18, 19 and 21 are packaged; the settings determine which are active.
 
 To select the latest published package, run `npm run filters:update`, then `npm install`, `npm run verify` and `npm run test:e2e`. Review the changed `package.json` and `package-lock.json` before committing. Reload QuietBrowse at `chrome://extensions` after rebuilding.
 

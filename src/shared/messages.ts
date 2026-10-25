@@ -1,9 +1,11 @@
 import type { Settings } from './settings';
 
 export type AppRequest =
-  | { type: 'QUIETBROWSE_STATUS'; host?: string }
+  | { type: 'QUIETBROWSE_STATUS' }
   | { type: 'QUIETBROWSE_SET_ENABLED'; enabled: boolean }
-  | { type: 'QUIETBROWSE_SET_SITE'; host: string; enabled: boolean };
+  | { type: 'QUIETBROWSE_SET_SITE'; host: string; enabled: boolean }
+  | { type: 'QUIETBROWSE_SAVE_SETTINGS'; settings: Settings }
+  | { type: 'QUIETBROWSE_ADD_RULE'; host: string; selector: string };
 
 export type AppResponse = {
   settings: Settings;

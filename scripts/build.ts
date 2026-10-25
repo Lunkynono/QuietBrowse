@@ -4,6 +4,7 @@ import webpack from 'webpack';
 import { createRequire } from 'node:module';
 import { copyWar } from '@adguard/tswebextension/cli';
 import { FILTER_IDS, prepareFilters } from './filter-assets';
+import { makeIcons } from './icons';
 
 const dist = path.resolve('dist');
 const require = createRequire(import.meta.url);
@@ -19,6 +20,7 @@ await new Promise<void>((resolve, reject) => {
 });
 
 await prepareFilters(path.join(dist, 'filters'));
+await makeIcons(path.join(dist, 'icons'));
 await copyWar(path.join(dist, 'web-accessible-resources'));
 const manifestFile = path.join(dist, 'manifest.json');
 const manifest = JSON.parse(await readFile(manifestFile, 'utf8')) as Record<string, unknown>;

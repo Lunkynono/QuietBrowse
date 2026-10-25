@@ -1,7 +1,11 @@
 # Architecture
 
-The MV3 service worker starts `@adguard/api-mv3` with the three packaged filter IDs and restores settings from `chrome.storage.local`. The SDK manages network DNR rules and its content script. The popup sends a small set of typed messages to query status or change global and site filtering. Changes are saved only after the engine accepts the new configuration.
+The MV3 service worker starts `@adguard/api-mv3` with locally packaged filter assets. `chrome.storage.local` holds one validated, versioned settings record. The worker serializes configuration changes and saves settings only after the SDK accepts the new configuration. The SDK owns DNR and its cosmetic content script; QuietBrowse adds a small content layer for personal selectors and conservative YouTube display cleanup. That layer follows global/site switches and storage changes.
 
-`scripts/build.ts` compiles the three extension entries, packages filter assets and redirect resources, and writes the final manifest into `dist/`. Published filter metadata is converted to the compact format expected by the installed SDK; the actual DNR network rules are not rewritten. `scripts/validate-dist.ts` checks the essential paths. Browser tests exercise blocking and recovery through the packaged extension.
+Balanced mode selects filter IDs 2, 3, 9, 18 and 19 according to their individual switches. Intensive mode additionally selects 21. The YouTube disable switch adds `youtube.com` to the SDK allowlist without changing the user's ordinary exception list. No floating-video switch is exposed until its behavior can be made reliable on real sites.
 
-There is no backend, account or browsing telemetry. Host permissions cover HTTP and HTTPS sites so the content script and network filtering can work across the web. Browser internal pages are outside extension control.
+The popup and options page use typed messages for status and settings changes. Custom rule messages from content scripts are accepted only when the sender tab's domain matches the rule's domain; selectors are restricted to narrow ID/class forms. Backups are local JSON with strict schema and domain/selector validation. There is no remote account, page-history logging or runtime filter download.
+
+`scripts/build.ts` compiles four extension entries, bundles filter assets and redirect resources, writes DNR manifest references and creates local PNG icons. Published AdGuard metadata is converted to the compact format required by the pinned SDK. `scripts/validate-dist.ts` checks the essential output paths. The Playwright test launches an isolated temporary Chromium profile and exercises the built extension.
+
+HTTP/HTTPS host permissions are broad because all-site DNR and content filtering require access to those pages. Chrome internal pages are intentionally out of scope. Other permissions support the SDK and current-tab popup control; no tab-closing surveillance is implemented.

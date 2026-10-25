@@ -1,26 +1,30 @@
-# Implementation status
+# Implementation status (v0.2)
 
 ## Done
 
-- MV3 unpacked build, Spanish popup and locally bundled filter assets.
-- AdGuard Base (2), Tracking Protection (3), Spanish/Portuguese (9).
-- Persistent global and site controls connected to the filtering engine.
-- Controlled Chromium test: ad and tracker requests blocked, site exception and global pause applied.
-- TypeScript checks, lint, unit tests, build output validation and persistence after browser restart.
+- MV3 build with six bundled filter rulesets: Base (2), Tracking (3), Spanish/Portuguese (9), Cookie Notices (18), Popups (19), Other Annoyances (21, intensive profile only).
+- Network and SDK cosmetic filtering; global and per-site pause; service-worker settings persistence and v0.1 settings migration.
+- Spanish popup/options, filter/profile toggles, site exceptions, local JSON backup/restore with validation, themes and locally generated icons.
+- Site-scoped custom element picker with preview confirmation, narrow selectors, enable/delete controls and pause synchronization.
+- Conservative YouTube display-ad selectors and an immediate YouTube disable switch. No player/media interception.
+- Controlled Chromium checks for network blocking, cookie ruleset switching, custom cosmetic rule, YouTube fixture recovery, site/global pause and persistence.
 
 ## Partial
 
-- Cosmetic filtering is provided by the SDK but has not been verified against controlled page elements.
-- Site exception changes require reloading the affected page.
-- Filter metadata from the published rulesets package is converted to the format expected by the current engine during build.
+- Cookie and popup rules are from maintained lists, but their effectiveness and false positives on live sites are not verified.
+- YouTube display cleanup is tested on a controlled page, not against live YouTube. Video ads and actual playback are untested.
+- Site and filter changes may require reloading open tabs. The extension says so in its UI.
+- Filter package metadata is converted at build time for the installed SDK; rerun browser tests after dependency updates.
 
 ## Not implemented
 
-- Options page, exception list management UI, element picker, backup/restore.
-- Dedicated annoyance, cookie and floating video controls.
-- YouTube-specific safeguards and testing.
+- Automatic cookie rejection, tracking-query cleanup, automatic closing of new tabs and image replacement. These need stronger safety evidence before exposing controls.
+- Precise blocked-request counters: no reliable production count is available from the chosen integration.
+- Floating-video cleanup, universal overlay removal or scroll restoration. Avoiding broad DOM surgery protects normal pages.
+- Guaranteed pre-roll/mid-roll removal, anti-adblock bypass, VPN or system-wide filtering.
 
 ## Untested
 
-- Installation in the user's Chrome profile and real-world websites.
-- MV3 worker idle/restart behavior, Chrome's static rule quota alongside other installed blockers.
+- User's personal Chrome profile, real news/shopping/login/payment sites and live YouTube watch/Shorts/playlist playback.
+- Coexistence with other installed blockers and static rule quotas in the user's own profile.
+- Actual effectiveness of packaged cookie, popup and nuisance lists on the user's preferred sites.

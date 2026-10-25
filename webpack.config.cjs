@@ -9,6 +9,7 @@ module.exports = {
     background: './src/background/index.ts',
     'content-script': './src/content/index.ts',
     popup: './src/popup/index.tsx',
+    options: './src/options/index.tsx',
   },
   output: { path: path.resolve(__dirname, 'dist'), filename: '[name].js', clean: true },
   resolve: {
@@ -27,6 +28,7 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({ template: './src/popup/index.html', filename: 'popup.html', chunks: ['popup'] }),
+    new HtmlWebpackPlugin({ template: './src/options/index.html', filename: 'options.html', chunks: ['options'] }),
     new CopyWebpackPlugin({ patterns: [{ from: 'public/manifest.json', to: 'manifest.json' }] }),
   ],
   performance: { hints: false },

@@ -1,8 +1,8 @@
 import browser from 'webextension-polyfill';
 import { AdguardApi, MESSAGE_HANDLER_NAME, type Configuration } from '@adguard/api-mv3';
-import { DEFAULT_SETTINGS, isAllowlisted, normalizeHost, parseSettings, type Settings } from '../shared/settings';
+import { DEFAULT_SETTINGS, isAllowlisted, normalizeHost, parseBackup, parseSettings, validSelector, type Settings } from '../shared/settings';
 import type { AppRequest, AppResponse } from '../shared/messages';
-import { FILTER_IDS } from '../shared/filters';
+import { selectedFilters } from '../shared/filters';
 
 const STORAGE_KEY = 'settings';
 let api: AdguardApi | null = null;
@@ -10,6 +10,7 @@ let initialization: Promise<void> | null = null;
 let state: AppResponse['engineState'] = 'loading';
 let lastError: string | undefined;
 let currentSettings = DEFAULT_SETTINGS;
+let mutation = Promise.resolve();
 
 function describeError(error: unknown): string {
   if (!(error instanceof Error)) return String(error);
@@ -18,9 +19,9 @@ function describeError(error: unknown): string {
 
 function configuration(settings: Settings): Configuration {
   return {
-    filters: [...FILTER_IDS],
+    filters: selectedFilters(settings),
     filteringEnabled: settings.enabled,
-    allowlist: settings.allowlistedHosts,
+    allowlist: settings.youtubeFiltering ? settings.allowlistedHosts : [...new Set([...settings.allowlistedHosts, 'youtube.com'])],
     assetsPath: 'filters',
     rules: [],
   };
@@ -45,6 +46,7 @@ async function ensureEngine(): Promise<void> {
       state = 'error';
       lastError = describeError(error);
       api = null;
+      initialization = null;
       throw error;
     }
   })();
@@ -67,18 +69,24 @@ async function updateSettings(next: Settings): Promise<void> {
   }
 }
 
+async function serializeUpdate(createNext: () => Settings): Promise<void> {
+  const task = mutation.then(() => updateSettings(createNext()));
+  mutation = task.then(() => undefined, () => undefined);
+  await task;
+}
+
 function response(): AppResponse {
   return { settings: currentSettings, engineState: state, ...(lastError ? { error: lastError } : {}) };
 }
 
-async function handleAppMessage(message: AppRequest): Promise<AppResponse> {
+async function handleAppMessage(message: AppRequest, sender: browser.Runtime.MessageSender): Promise<AppResponse> {
   if (message.type === 'QUIETBROWSE_STATUS') {
     try { await ensureEngine(); } catch { /* Error is reflected in the status. */ }
     return response();
   }
   await ensureEngine();
   if (message.type === 'QUIETBROWSE_SET_ENABLED' && typeof message.enabled === 'boolean') {
-    await updateSettings({ ...currentSettings, enabled: message.enabled });
+    await serializeUpdate(() => ({ ...currentSettings, enabled: message.enabled }));
     return response();
   }
   if (message.type === 'QUIETBROWSE_SET_SITE' && typeof message.enabled === 'boolean') {
@@ -87,7 +95,22 @@ async function handleAppMessage(message: AppRequest): Promise<AppResponse> {
     const allowlistedHosts = message.enabled
       ? currentSettings.allowlistedHosts.filter((entry) => !isAllowlisted(host, [entry]))
       : [...new Set([...currentSettings.allowlistedHosts, host])];
-    await updateSettings({ ...currentSettings, allowlistedHosts });
+    await serializeUpdate(() => ({ ...currentSettings, allowlistedHosts }));
+    return response();
+  }
+  if (message.type === 'QUIETBROWSE_SAVE_SETTINGS') {
+    if (!sender.url?.startsWith(browser.runtime.getURL(''))) throw new Error('Origen de solicitud no permitido.');
+    const next = parseBackup(message.settings);
+    await serializeUpdate(() => next);
+    return response();
+  }
+  if (message.type === 'QUIETBROWSE_ADD_RULE') {
+    const senderHost = sender.tab?.url ? normalizeHost(new URL(sender.tab.url).hostname) : null;
+    const host = normalizeHost(message.host);
+    if (!senderHost || host !== senderHost || !validSelector(message.selector)) throw new Error('Regla o página no válida.');
+    await serializeUpdate(() => ({ ...currentSettings, customRules: [...currentSettings.customRules, {
+      id: crypto.randomUUID(), host, selector: message.selector, enabled: true,
+    }].slice(-200) }));
     return response();
   }
   throw new Error('Solicitud desconocida.');
@@ -101,8 +124,8 @@ browser.runtime.onMessage.addListener(async (message: unknown, sender: browser.R
     return api?.getMessageHandler()(message as Parameters<ReturnType<AdguardApi['getMessageHandler']>>[0], sender);
   }
   if (typeof candidate.type !== 'string' || !candidate.type.startsWith('QUIETBROWSE_')) return undefined;
-  if (!sender.url?.startsWith(browser.runtime.getURL(''))) throw new Error('Origen de solicitud no permitido.');
-  return handleAppMessage(candidate as AppRequest);
+  if (!sender.url?.startsWith(browser.runtime.getURL('')) && candidate.type !== 'QUIETBROWSE_ADD_RULE') throw new Error('Origen de solicitud no permitido.');
+  return handleAppMessage(candidate as AppRequest, sender);
 });
 
 void ensureEngine().catch((error) => console.error('QuietBrowse: no se pudo iniciar el motor.', error));
