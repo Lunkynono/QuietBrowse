@@ -5,6 +5,27 @@ import type { AppRequest, AppResponse } from '../shared/messages';
 import { selectedFilters } from '../shared/filters';
 
 const STORAGE_KEY = 'settings';
+type CookieBridge = {
+  remove: (details: unknown) => Promise<null>;
+  set: (details: unknown) => Promise<null>;
+  getAll: (details: unknown) => Promise<never[]>;
+};
+
+function installSafeCookieBridge(): void {
+  const browserApi = browser as unknown as { cookies?: Partial<CookieBridge> };
+  if (browserApi.cookies?.remove && browserApi.cookies?.set && browserApi.cookies?.getAll) return;
+  // Cookie rules remain available for header/cosmetic processing, but direct browser
+  // cookie mutation is intentionally disabled when Chrome does not expose the API.
+  Object.defineProperty(browserApi, 'cookies', {
+    configurable: true,
+    value: {
+      remove: async () => null,
+      set: async () => null,
+      getAll: async () => [],
+    } satisfies CookieBridge,
+  });
+}
+
 let api: AdguardApi | null = null;
 let initialization: Promise<void> | null = null;
 let state: AppResponse['engineState'] = 'loading';
@@ -37,6 +58,7 @@ async function ensureEngine(): Promise<void> {
   initialization = (async () => {
     state = 'loading';
     try {
+      installSafeCookieBridge();
       currentSettings = await readSettings();
       api = await AdguardApi.create();
       await api.start(configuration(currentSettings));

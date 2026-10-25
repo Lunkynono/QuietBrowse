@@ -18,7 +18,7 @@
 
 ## Not implemented
 
-- Automatic cookie rejection, tracking-query cleanup, automatic closing of new tabs and image replacement. These need stronger safety evidence before exposing controls.
+- Automatic cookie rejection or mutation, tracking-query cleanup, automatic closing of new tabs and image replacement. These need stronger safety evidence before exposing controls.
 - Precise blocked-request counters: no reliable production count is available from the chosen integration.
 - Floating-video cleanup, universal overlay removal or scroll restoration. Avoiding broad DOM surgery protects normal pages.
 - Guaranteed pre-roll/mid-roll removal, anti-adblock bypass, VPN or system-wide filtering.
