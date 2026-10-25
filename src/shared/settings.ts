@@ -1,5 +1,6 @@
 export type Profile = 'balanced' | 'aggressive';
 export type Theme = 'system' | 'light' | 'dark';
+export type Accent = 'mint' | 'blue' | 'violet' | 'coral';
 export interface CustomRule { id: string; host: string; selector: string; enabled: boolean }
 export interface Settings {
   schemaVersion: 2;
@@ -12,6 +13,7 @@ export interface Settings {
   youtubeFiltering: boolean;
   youtubeCosmeticCleanup: boolean;
   theme: Theme;
+  accent: Accent;
   allowlistedHosts: string[];
   customRules: CustomRule[];
 }
@@ -20,7 +22,7 @@ export const DEFAULT_SETTINGS: Settings = {
   schemaVersion: 2, enabled: true, profile: 'balanced', blockAds: true,
   blockTrackers: true, hideCookieNotices: true, blockDistractions: true,
   youtubeFiltering: true,
-  youtubeCosmeticCleanup: true, theme: 'system', allowlistedHosts: [], customRules: [],
+  youtubeCosmeticCleanup: true, theme: 'system', accent: 'mint', allowlistedHosts: [], customRules: [],
 };
 
 export function normalizeHost(value: string): string | null {
@@ -72,6 +74,7 @@ export function parseSettings(value: unknown): Settings {
     youtubeFiltering: boolean(input, 'youtubeFiltering'),
     youtubeCosmeticCleanup: boolean(input, 'youtubeCosmeticCleanup'),
     theme: input.theme === 'light' || input.theme === 'dark' ? input.theme : 'system',
+    accent: input.accent === 'blue' || input.accent === 'violet' || input.accent === 'coral' ? input.accent : 'mint',
     allowlistedHosts: [...new Set(hosts)].slice(0, 500),
     customRules,
   };

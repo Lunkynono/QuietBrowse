@@ -30,6 +30,9 @@ describe('settings', () => {
 
   it('validates backup versions and custom selectors', () => {
     expect(parseBackup(DEFAULT_SETTINGS)).toEqual(DEFAULT_SETTINGS);
+    expect(parseBackup({ ...DEFAULT_SETTINGS, accent: 'blue' }).accent).toBe('blue');
+    const olderBackup = Object.fromEntries(Object.entries(DEFAULT_SETTINGS).filter(([key]) => key !== 'accent'));
+    expect(parseBackup(olderBackup).accent).toBe('mint');
     expect(() => parseBackup({ ...DEFAULT_SETTINGS, schemaVersion: 99 })).toThrow();
     expect(() => parseBackup({ ...DEFAULT_SETTINGS, allowlistedHosts: ['http://bad'] })).toThrow();
     expect(parseSettings({ ...DEFAULT_SETTINGS, customRules: [{ id: 'deadbeef', host: 'example.com', selector: 'div.advert', enabled: true }] }).customRules).toHaveLength(1);

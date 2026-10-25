@@ -63,11 +63,17 @@ try {
   assert.equal(status.engineState, 'active', status.error);
   const enabled = await worker.evaluate(() => chrome.declarativeNetRequest.getEnabledRulesets());
   assert.deepEqual(enabled.sort(), ['ruleset_18', 'ruleset_19', 'ruleset_2', 'ruleset_3', 'ruleset_9']);
+  const fixtureTabId = await popup.evaluate(async (url) => (await chrome.tabs.query({})).find((tab) => tab.url === url)?.id, fixtureUrl);
+  assert.ok(fixtureTabId, 'Fixture tab ID');
 
   const adFailure = await requestFailure(page, 'https://ad.doubleclick.net/quietbrowse-test.js');
   const trackerFailure = await requestFailure(page, 'https://www.google-analytics.com/quietbrowse-test.js');
   assert.match(adFailure ?? '', /ERR_BLOCKED_BY_CLIENT/, `Ad request: ${adFailure}`);
   assert.match(trackerFailure ?? '', /ERR_BLOCKED_BY_CLIENT/, `Tracker request: ${trackerFailure}`);
+  await popup.waitForFunction(async (tabId) => {
+    const result = await chrome.runtime.sendMessage({ type: 'QUIETBROWSE_STATUS', tabId }) as AppResponse;
+    return (result.counts?.page ?? 0) >= 2 && (result.counts?.total ?? 0) >= 2;
+  }, fixtureTabId, { timeout: 10000 });
 
   const noCookies = await send(popup, { type: 'QUIETBROWSE_SAVE_SETTINGS', settings: { ...status.settings, hideCookieNotices: false } });
   assert.equal(noCookies.settings.hideCookieNotices, false);
@@ -76,22 +82,36 @@ try {
   assert.equal((await worker.evaluate(() => chrome.declarativeNetRequest.getEnabledRulesets())).includes('ruleset_18'), true);
   const options = await context.newPage();
   await options.goto(`chrome-extension://${extensionId}/options.html`);
-  assert.equal(await options.getByRole('heading', { name: 'Webs excluidas' }).count(), 1);
+  if (process.env.QUIETBROWSE_SCREENSHOTS === '1') {
+    await options.setViewportSize({ width: 1200, height: 850 });
+    await options.screenshot({ path: path.resolve('dist/options-preview.png'), fullPage: true });
+    await popup.setViewportSize({ width: 390, height: 800 });
+    await popup.screenshot({ path: path.resolve('dist/popup-preview.png'), fullPage: true });
+  }
+  await options.getByRole('button', { name: 'Mis webs' }).click();
+  assert.equal(await options.getByRole('heading', { name: 'Webs donde no actuamos' }).count(), 1);
+  await options.getByRole('button', { name: 'Qué bloquear' }).click();
   await options.getByRole('checkbox', { name: /Rastreadores/ }).uncheck();
   await options.getByRole('status').waitFor();
   assert.equal((await worker.evaluate(() => chrome.declarativeNetRequest.getEnabledRulesets())).includes('ruleset_3'), false);
   await options.getByRole('checkbox', { name: /Rastreadores/ }).check();
   await options.waitForFunction(async () => ((await chrome.storage.local.get('settings')).settings as { blockTrackers: boolean }).blockTrackers === true);
-  assert.equal((await send(popup, { type: 'QUIETBROWSE_STATUS' })).settings.blockTrackers, true);
-  await options.getByRole('combobox', { name: /Perfil/ }).selectOption('aggressive');
+  await popup.waitForFunction(async () => ((await chrome.runtime.sendMessage({ type: 'QUIETBROWSE_STATUS' })) as AppResponse).settings.blockTrackers === true);
+  await options.getByRole('button', { name: 'Inicio' }).click();
+  await options.getByRole('radio', { name: /Intensivo/ }).check();
   await options.waitForFunction(async () => ((await chrome.storage.local.get('settings')).settings as { profile: string }).profile === 'aggressive');
   assert.equal((await worker.evaluate(() => chrome.declarativeNetRequest.getEnabledRulesets())).includes('ruleset_21'), true);
-  await options.getByRole('combobox', { name: /Perfil/ }).selectOption('balanced');
+  await options.getByRole('radio', { name: /Equilibrado/ }).check();
   await options.waitForFunction(async () => ((await chrome.storage.local.get('settings')).settings as { profile: string }).profile === 'balanced');
   assert.equal((await worker.evaluate(() => chrome.declarativeNetRequest.getEnabledRulesets())).includes('ruleset_21'), false);
+  await options.getByRole('button', { name: 'Apariencia' }).click();
+  await options.getByRole('radio', { name: 'Oscuro' }).check();
+  await options.waitForFunction(() => document.querySelector('main')?.getAttribute('data-theme') === 'dark');
+  await options.getByRole('radio', { name: 'Azul' }).check();
+  await options.waitForFunction(() => document.querySelector('main')?.getAttribute('data-accent') === 'blue');
+  await options.getByRole('radio', { name: 'Sistema' }).check();
+  await options.getByRole('radio', { name: 'Verde' }).check();
 
-  const fixtureTabId = await popup.evaluate(async (url) => (await chrome.tabs.query({})).find((tab) => tab.url === url)?.id, fixtureUrl);
-  assert.ok(fixtureTabId, 'Fixture tab ID');
   await popup.evaluate((tabId) => chrome.tabs.sendMessage(tabId, { type: 'QUIETBROWSE_START_PICKER' }), fixtureTabId);
   page.once('dialog', (dialog) => void dialog.accept());
   await page.locator('#quietbrowse-personal-target').click();
@@ -114,6 +134,9 @@ try {
   const pausedSite = await send(popup, { type: 'QUIETBROWSE_SET_SITE', host: '127.0.0.1', enabled: false });
   assert.deepEqual(pausedSite.settings.allowlistedHosts, ['127.0.0.1']);
   await page.reload();
+  const afterReload = await send(popup, { type: 'QUIETBROWSE_STATUS', tabId: fixtureTabId });
+  assert.equal(afterReload.counts?.page, 0);
+  assert.ok((afterReload.counts?.total ?? 0) >= 2);
   assert.notEqual(await page.locator('#quietbrowse-personal-target').evaluate((element) => getComputedStyle(element).display), 'none');
   const pausedFailure = await requestFailure(page, 'https://ad.doubleclick.net/quietbrowse-site-paused.js');
   assert.doesNotMatch(pausedFailure ?? '', /ERR_BLOCKED_BY_CLIENT/, `Site pause: ${pausedFailure}`);
@@ -131,7 +154,9 @@ try {
   const restartedStatus = await send(restartedPopup, { type: 'QUIETBROWSE_STATUS' });
   assert.equal(restartedStatus.engineState, 'disabled');
   assert.deepEqual(restartedStatus.settings.allowlistedHosts, ['127.0.0.1']);
-  console.log('E2E OK: red, listas de cookies, perfil intensivo, ajustes, selector personal, recuperación de YouTube en fixture, excepción por sitio, pausa global y persistencia.');
+  assert.ok((restartedStatus.counts?.total ?? 0) >= 2);
+  assert.equal((await send(restartedPopup, { type: 'QUIETBROWSE_RESET_COUNTS' })).counts?.total, 0);
+  console.log('E2E OK: red, contador y reinicio, listas de cookies, perfil intensivo, ajustes, selector personal, recuperación de YouTube en fixture, excepción por sitio, pausa global y persistencia.');
 } finally {
   await context?.close();
   await new Promise<void>((resolve) => server.close(() => resolve()));

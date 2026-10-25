@@ -6,6 +6,8 @@
 | --- | --- | --- |
 | TypeScript, lint, unit tests, build and manifest paths | Pass | `npm run verify`; 5 unit tests |
 | Ad and tracker requests | Pass | Chromium fixture requests to DoubleClick and Google Analytics failed with `ERR_BLOCKED_BY_CLIENT` |
+| Block counters | Pass | Those two blocked requests increased both current-page and saved totals in the Chromium fixture |
+| Redesigned UI | Pass | Popup and settings rendered and inspected in isolated Chromium; settings controls exercised in the E2E test |
 | Cookie filter switch | Pass | Ruleset 18 disabled/enabled in Chromium when the switch changed |
 | Intensive profile | Pass | Options enabled ruleset 21; returning to Balanced disabled it |
 | Normal content | Pass | Fixture article text, login input and video element remained present |

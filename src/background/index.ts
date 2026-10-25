@@ -3,6 +3,7 @@ import { AdguardApi, MESSAGE_HANDLER_NAME, type Configuration } from '@adguard/a
 import { DEFAULT_SETTINGS, isAllowlisted, normalizeHost, parseBackup, parseSettings, validSelector, type Settings } from '../shared/settings';
 import type { AppRequest, AppResponse } from '../shared/messages';
 import { selectedFilters } from '../shared/filters';
+import { getCounts, recordBlocked, resetPage, resetTotal } from './counters';
 
 const STORAGE_KEY = 'settings';
 type CookieBridge = {
@@ -62,6 +63,7 @@ async function ensureEngine(): Promise<void> {
       currentSettings = await readSettings();
       api = await AdguardApi.create();
       await api.start(configuration(currentSettings));
+      api.onRequestBlocked.addListener((event) => { void recordBlocked(event); });
       state = currentSettings.enabled ? 'active' : 'disabled';
       lastError = undefined;
     } catch (error) {
@@ -79,7 +81,9 @@ async function updateSettings(next: Settings): Promise<void> {
   await ensureEngine();
   if (!api) throw new Error('El motor de filtros no está disponible.');
   try {
-    await api.configure(configuration(next));
+    if (JSON.stringify(configuration(currentSettings)) !== JSON.stringify(configuration(next))) {
+      await api.configure(configuration(next));
+    }
     await chrome.storage.local.set({ [STORAGE_KEY]: next });
     currentSettings = next;
     state = next.enabled ? 'active' : 'disabled';
@@ -97,14 +101,15 @@ async function serializeUpdate(createNext: () => Settings): Promise<void> {
   await task;
 }
 
-function response(): AppResponse {
-  return { settings: currentSettings, engineState: state, ...(lastError ? { error: lastError } : {}) };
+async function response(tabId?: number): Promise<AppResponse> {
+  const counts = await getCounts(tabId);
+  return { settings: currentSettings, engineState: state, counts, ...(lastError ? { error: lastError } : {}) };
 }
 
 async function handleAppMessage(message: AppRequest, sender: browser.Runtime.MessageSender): Promise<AppResponse> {
   if (message.type === 'QUIETBROWSE_STATUS') {
     try { await ensureEngine(); } catch { /* Error is reflected in the status. */ }
-    return response();
+    return response(message.tabId);
   }
   await ensureEngine();
   if (message.type === 'QUIETBROWSE_SET_ENABLED' && typeof message.enabled === 'boolean') {
@@ -135,6 +140,10 @@ async function handleAppMessage(message: AppRequest, sender: browser.Runtime.Mes
     }].slice(-200) }));
     return response();
   }
+  if (message.type === 'QUIETBROWSE_RESET_COUNTS') {
+    await resetTotal();
+    return response();
+  }
   throw new Error('Solicitud desconocida.');
 }
 
@@ -149,5 +158,10 @@ browser.runtime.onMessage.addListener(async (message: unknown, sender: browser.R
   if (!sender.url?.startsWith(browser.runtime.getURL('')) && candidate.type !== 'QUIETBROWSE_ADD_RULE') throw new Error('Origen de solicitud no permitido.');
   return handleAppMessage(candidate as AppRequest, sender);
 });
+
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (details.frameId === 0) void resetPage(details.tabId);
+});
+chrome.tabs.onRemoved.addListener((tabId) => { void resetPage(tabId); });
 
 void ensureEngine().catch((error) => console.error('QuietBrowse: no se pudo iniciar el motor.', error));
