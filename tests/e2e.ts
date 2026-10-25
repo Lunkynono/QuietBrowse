@@ -83,6 +83,12 @@ try {
   await options.getByRole('checkbox', { name: /Rastreadores/ }).check();
   await options.waitForFunction(async () => ((await chrome.storage.local.get('settings')).settings as { blockTrackers: boolean }).blockTrackers === true);
   assert.equal((await send(popup, { type: 'QUIETBROWSE_STATUS' })).settings.blockTrackers, true);
+  await options.getByRole('combobox', { name: /Perfil/ }).selectOption('aggressive');
+  await options.waitForFunction(async () => ((await chrome.storage.local.get('settings')).settings as { profile: string }).profile === 'aggressive');
+  assert.equal((await worker.evaluate(() => chrome.declarativeNetRequest.getEnabledRulesets())).includes('ruleset_21'), true);
+  await options.getByRole('combobox', { name: /Perfil/ }).selectOption('balanced');
+  await options.waitForFunction(async () => ((await chrome.storage.local.get('settings')).settings as { profile: string }).profile === 'balanced');
+  assert.equal((await worker.evaluate(() => chrome.declarativeNetRequest.getEnabledRulesets())).includes('ruleset_21'), false);
 
   const fixtureTabId = await popup.evaluate(async (url) => (await chrome.tabs.query({})).find((tab) => tab.url === url)?.id, fixtureUrl);
   assert.ok(fixtureTabId, 'Fixture tab ID');
@@ -125,7 +131,7 @@ try {
   const restartedStatus = await send(restartedPopup, { type: 'QUIETBROWSE_STATUS' });
   assert.equal(restartedStatus.engineState, 'disabled');
   assert.deepEqual(restartedStatus.settings.allowlistedHosts, ['127.0.0.1']);
-  console.log('E2E OK: red, listas de cookies, ajustes, selector personal, recuperación de YouTube en fixture, excepción por sitio, pausa global y persistencia.');
+  console.log('E2E OK: red, listas de cookies, perfil intensivo, ajustes, selector personal, recuperación de YouTube en fixture, excepción por sitio, pausa global y persistencia.');
 } finally {
   await context?.close();
   await new Promise<void>((resolve) => server.close(() => resolve()));

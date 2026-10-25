@@ -7,6 +7,7 @@
 | TypeScript, lint, unit tests, build and manifest paths | Pass | `npm run verify`; 5 unit tests |
 | Ad and tracker requests | Pass | Chromium fixture requests to DoubleClick and Google Analytics failed with `ERR_BLOCKED_BY_CLIENT` |
 | Cookie filter switch | Pass | Ruleset 18 disabled/enabled in Chromium when the switch changed |
+| Intensive profile | Pass | Options enabled ruleset 21; returning to Balanced disabled it |
 | Normal content | Pass | Fixture article text, login input and video element remained present |
 | Personal element picker | Pass | Explicit click created a site-scoped rule and hid its fixture target |
 | YouTube recovery | Pass in controlled fixture | Display-ad tag hidden while video remained visible; YouTube disable switch removed cosmetic hiding |
