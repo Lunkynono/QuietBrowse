@@ -31,4 +31,4 @@ Para comprobar el proyecto: `npm run verify`. La prueba de navegador se ejecuta 
 
 Esta primera versión bloquea peticiones de anuncios y seguimiento y permite pausar la protección globalmente o en la web actual. Tras cambiar la excepción de una web, recarga la pestaña. El popup es básico; los ajustes avanzados, las molestias, las copias de seguridad y el tratamiento específico de YouTube quedan para próximas versiones. El bloqueo de YouTube no está verificado y no se promete que desaparezcan todos sus anuncios.
 
-El repositorio se llama `adblock` por su origen, mientras que la extensión se presenta como QuietBrowse. El código y las dependencias de AdGuard se distribuyen bajo GPL-3.0-only; consulta [la licencia](LICENSE) y [los avisos de terceros](THIRD_PARTY_NOTICES.md).
+El repositorio nació como `adblock` y ahora se llama `QuietBrowse`. El código y las dependencias de AdGuard se distribuyen bajo GPL-3.0-only; consulta [la licencia](LICENSE) y [los avisos de terceros](THIRD_PARTY_NOTICES.md).
