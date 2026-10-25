@@ -6,6 +6,6 @@
 4. Selecciona `D:\Proyectos\AdBlock\dist` y, si quieres, fija el icono de QuietBrowse en la barra.
 5. Abre una web normal y comprueba el estado desde el popup. «Abrir ajustes» permite cambiar listas, excepciones y temas. Para distinguir su efecto del de otro bloqueador, desactiva temporalmente el otro bloqueador durante la prueba.
 
-Si una web falla, pulsa «Restaurar esta web» y recarga la pestaña. El interruptor general pausa la protección en todas las webs. Para problemas en YouTube, desactiva «Protección en YouTube» y recarga el sitio. Si actualizas el código o los filtros, ejecuta de nuevo `npm run build` y pulsa «Recargar» en la tarjeta de QuietBrowse dentro de `chrome://extensions`.
+Si una web falla, pulsa «Restaurar esta web» y recarga la pestaña. El interruptor general pausa la protección en todas las webs. Para problemas en YouTube, desactiva «Protección en YouTube» y recarga el sitio. Si Chrome muestra que se han actualizado permisos tras una recompilación, acepta la actualización al recargar la extensión. Si actualizas el código o los filtros, ejecuta de nuevo `npm run build` y pulsa «Recargar» en la tarjeta de QuietBrowse dentro de `chrome://extensions`.
 
 La extensión se ha probado en un Chromium aislado mediante Playwright. No se ha instalado ni probado en tu perfil personal de Chrome.

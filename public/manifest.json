@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "description": "Bloqueo local de anuncios, rastreadores y molestias con controles por web.",
   "minimum_chrome_version": "120",
-  "permissions": ["declarativeNetRequest", "storage", "tabs", "webRequest", "webNavigation", "scripting"],
+  "permissions": ["cookies", "declarativeNetRequest", "storage", "tabs", "webRequest", "webNavigation", "scripting"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "background": { "service_worker": "background.js" },
   "action": { "default_popup": "popup.html" },
